@@ -1,4 +1,4 @@
-use exe::Buffer;
+use exe::SectionCharacteristics;
 use exe::PE;
 use std::fs;
 use std::io;
@@ -26,10 +26,12 @@ impl UnifiedKernelImage {
 
         sec.set_name(Some(name));
         sec.size_of_raw_data = data.as_ref().len() as u32;
+        sec.characteristics =
+            SectionCharacteristics::MEM_READ | SectionCharacteristics::CNT_INITIALIZED_DATA;
 
         let sec = self.executable.append_section(&sec)?.to_owned();
         self.executable
-            .resize(self.executable.len() + data.as_ref().len(), 0);
+            .resize(sec.pointer_to_raw_data.0 as usize + data.as_ref().len(), 0);
 
         sec.write(&mut self.executable, data)?;
 
@@ -84,9 +86,15 @@ impl UnifiedKernelImage {
 
 fn main() -> io::Result<()> {
     let mut uki =
-        UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "test.efi")?;
+        UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;
 
     uki.add_section_path(".osrel", "/usr/lib/os-release")?;
+    uki.add_section_path(".cmdline", "/etc/kernel/cmdline")?;
+    uki.add_section_paths(
+        ".initrd",
+        vec!["/boot/initramfs-linux-zen.img", "/boot/intel-ucode.img"],
+    )?;
+    uki.add_section_path(".linux", "/boot/vmlinuz-linux-zen")?;
 
     uki.output()?;
 
