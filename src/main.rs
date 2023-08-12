@@ -1,3 +1,4 @@
+use exe::headers;
 use exe::SectionCharacteristics;
 use exe::PE;
 use std::fs;
@@ -97,8 +98,16 @@ impl UnifiedKernelImage {
             .calculate_checksum()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-        let headers = self.executable.get_valid_mut_nt_headers_64().unwrap();
-        headers.optional_header.checksum = checksum;
+        let existing_checksum = match self
+            .executable
+            .get_valid_mut_nt_headers()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
+        {
+            exe::NTHeadersMut::NTHeaders32(headers) => &mut headers.optional_header.checksum,
+            exe::NTHeadersMut::NTHeaders64(headers) => &mut headers.optional_header.checksum,
+        };
+
+        *existing_checksum = checksum;
 
         let buf = self
             .executable
