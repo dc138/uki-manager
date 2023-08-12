@@ -36,10 +36,8 @@ impl UnifiedKernelImage {
     fn add_section_buf<T: AsRef<[u8]>>(&mut self, name: &str, data: T) -> Result<(), Error> {
         let mut sec = exe::ImageSectionHeader::default();
 
-        let size: u32 = data.as_ref().len().try_into().map_err(|_| Error::Other)?;
-
-        let virtual_size = size;
-        let raw_size = self.executable.align_to_file(exe::Offset(size))?.0;
+        let virtual_size = data.as_ref().len().try_into().map_err(|_| Error::Other)?;
+        let raw_size = self.executable.align_to_file(exe::Offset(virtual_size))?.0;
 
         sec.set_name(Some(name));
         sec.size_of_raw_data = raw_size;
@@ -55,6 +53,17 @@ impl UnifiedKernelImage {
                 .map_err(|_| Error::Other)?,
             0,
         );
+
+        let existing_size = match self.executable.get_valid_mut_nt_headers()? {
+            exe::NTHeadersMut::NTHeaders32(headers) => {
+                &mut headers.optional_header.size_of_initialized_data
+            }
+            exe::NTHeadersMut::NTHeaders64(headers) => {
+                &mut headers.optional_header.size_of_initialized_data
+            }
+        };
+
+        *existing_size += raw_size;
 
         sec.write(&mut self.executable, data)?;
 
