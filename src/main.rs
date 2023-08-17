@@ -44,7 +44,7 @@ fn print_help(opts: &opts::Opts) {
 }
 
 fn print_version() {
-    println!("uki-manager version {}", VERSION);
+    println!("uki-manager v{}\n", VERSION);
     println!(
         "Copyright (C) 2023 Antonio de Haro. \n\
         This program is distributed under the MIT license, see the attatched LICENSE.txt file for terms and conditions. \n\
