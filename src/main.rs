@@ -1,6 +1,27 @@
+use std::process as proc;
+
+mod opts;
 mod uki;
 
+static VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 fn main() -> Result<(), uki::Error> {
+    let opts = match opts::parse_opts() {
+        Ok(opts) => opts,
+        Err(e) => {
+            println!("cannot parse arguments: {}", e);
+            proc::exit(1);
+        }
+    };
+
+    if opts.help {
+        print_help(&opts);
+        proc::exit(0);
+    } else if opts.version {
+        print_version();
+        proc::exit(0);
+    }
+
     let mut uki =
         uki::UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;
 
@@ -16,4 +37,18 @@ fn main() -> Result<(), uki::Error> {
     uki.output()?;
 
     Ok(())
+}
+
+fn print_help(opts: &opts::Opts) {
+    println!("{}", opts.usage);
+}
+
+fn print_version() {
+    println!("uki-manager version {}", VERSION);
+    println!(
+        "Copyright (C) 2023 Antonio de Haro. \n\
+        This program is distributed under the MIT license, see the attatched LICENSE.txt file for terms and conditions. \n\
+        This software is provided without any warranty of any kind. \n\
+        Copyright atributions for any third party code included are provided in the attatched COPYRIGHT.md file."
+    );
 }
