@@ -1,5 +1,7 @@
 use anyhow as ah;
+use uki_manager_proc as ump;
 
+#[ump::option_copy]
 pub struct KernelConfig {
     pub output_dir: String,
     pub output_name: String,

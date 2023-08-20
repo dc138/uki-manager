@@ -1,5 +1,6 @@
 [workspace]
 
 members = [
-  "app",
+  "uki-manager",
+  "uki-manager-proc",
 ]
