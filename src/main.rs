@@ -1,5 +1,6 @@
 use std::process as proc;
 
+mod config;
 mod opts;
 mod uki;
 
