@@ -1,16 +1,4 @@
-pub struct GlobalConfig {
-    pub default_kernel_config: KernelConfig,
-}
-
-impl GlobalConfig {
-    pub fn new(config_path: String) -> Option<GlobalConfig> {
-        todo!();
-    }
-
-    pub fn parse_instance(config_path: String) -> Option<KernelConfig> {
-        todo!();
-    }
-}
+use anyhow as ah;
 
 pub struct KernelConfig {
     pub output_dir: String,
@@ -21,4 +9,10 @@ pub struct KernelConfig {
     pub initrd_paths: Vec<String>,
     pub vmlinuz_path: String,
     pub splash_path: Option<String>,
+}
+
+impl KernelConfig {
+    pub fn parse_default(path: String) -> ah::Result<Self> {
+        todo!();
+    }
 }
