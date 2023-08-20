@@ -1,0 +1,10 @@
+[package]
+name = "uki-manager"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.75"
+exe = "0.5.6"
+getopts = "0.2.21"
+thiserror = "1.0.44"
