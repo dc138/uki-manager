@@ -22,7 +22,7 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
         "try to generate a uki for all installed kernels",
     );
 
-    opts.optopt("c", "config", "path to the global config file", "FILE");
+    opts.optopt("c", "config", "path to the default kernel config", "FILE");
 
     let matches = opts.parse(&args[1..])?;
 
@@ -32,7 +32,7 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
         gen_all: matches.opt_present("G"),
         global_config: matches
             .opt_str("c")
-            .unwrap_or("/etc/uki-manager/config.conf".to_owned()),
+            .unwrap_or("/etc/uki-manager/default.toml".to_owned()),
         usage: opts.usage("Usage: uki-manager [options]"),
     })
 }

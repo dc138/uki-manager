@@ -5,7 +5,7 @@ use syn::Fields as sf;
 use syn::Ident as si;
 
 #[proc_macro_attribute]
-pub fn option_copy(_attr: pm::TokenStream, item: pm::TokenStream) -> pm::TokenStream {
+pub fn serde_optional(_attr: pm::TokenStream, item: pm::TokenStream) -> pm::TokenStream {
     let ast = syn::parse_macro_input!(item as syn::DeriveInput);
 
     let name = ast.ident;
