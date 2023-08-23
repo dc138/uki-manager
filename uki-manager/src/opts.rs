@@ -4,7 +4,7 @@ pub struct Opts {
     pub help: bool,
     pub version: bool,
     pub gen_all: bool,
-    pub global_config: String,
+    pub default_config: String,
     pub usage: String,
 }
 
@@ -30,7 +30,7 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
         help: matches.opt_present("h"),
         version: matches.opt_present("v"),
         gen_all: matches.opt_present("G"),
-        global_config: matches
+        default_config: matches
             .opt_str("c")
             .unwrap_or("/etc/uki-manager/default.toml".to_owned()),
         usage: opts.usage("Usage: uki-manager [options]"),

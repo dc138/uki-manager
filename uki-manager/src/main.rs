@@ -1,19 +1,15 @@
 use std::process as proc;
 
+use config::KernelConfig;
+
 mod config;
 mod opts;
 mod uki;
 
 static VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-fn main() -> Result<(), uki::Error> {
-    let opts = match opts::parse_opts() {
-        Ok(opts) => opts,
-        Err(e) => {
-            println!("cannot parse arguments: {}", e);
-            proc::exit(1);
-        }
-    };
+fn main() -> Result<(), anyhow::Error> {
+    let opts = opts::parse_opts()?;
 
     if opts.help {
         print_help(&opts);
@@ -23,19 +19,22 @@ fn main() -> Result<(), uki::Error> {
         proc::exit(0);
     }
 
-    let mut uki =
-        uki::UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;
+    let default_config = KernelConfig::parse_with_default(opts.default_config)?;
+    dbg!(default_config);
 
-    uki.add_section_path(".osrel", "/usr/lib/os-release")?;
-    uki.add_section_buf(".uname", "6.4.8-zen1-1-zen")?;
-    uki.add_section_path(".cmdline", "/etc/kernel/cmdline")?;
-    uki.add_section_paths(
-        ".initrd",
-        vec!["/boot/intel-ucode.img", "/boot/initramfs-linux-zen.img"],
-    )?;
-    uki.add_section_path(".linux", "/boot/vmlinuz-linux-zen")?;
-
-    uki.output()?;
+    //let mut uki =
+    //uki::UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;
+    //
+    //uki.add_section_path(".osrel", "/usr/lib/os-release")?;
+    //uki.add_section_buf(".uname", "6.4.8-zen1-1-zen")?;
+    //uki.add_section_path(".cmdline", "/etc/kernel/cmdline")?;
+    //uki.add_section_paths(
+    //".initrd",
+    //vec!["/boot/intel-ucode.img", "/boot/initramfs-linux-zen.img"],
+    //)?;
+    //uki.add_section_path(".linux", "/boot/vmlinuz-linux-zen")?;
+    //
+    //uki.output()?;
 
     Ok(())
 }

@@ -1,6 +1,6 @@
 use uki_manager_proc as ump;
 
-#[derive(ump::TomlParseWithDefault)]
+#[derive(ump::TomlParseWithDefault, Debug)]
 pub struct KernelConfig {
     #[default("/efi/EFI/Linux/".to_owned())]
     pub output_dir: String,
