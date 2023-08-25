@@ -139,8 +139,23 @@ pub fn toml_from_str_default(item: pm::TokenStream) -> pm::TokenStream {
         .iter()
         .map(|(field_ident, field_ty, field_nested)| {
             let ty_final = if *field_nested {
-                let ty_optional_ident =
-                    si::new(&format!("{}Option", field_ident), pm2s::call_site());
+                let segments = &match field_ty {
+                    syn::Type::Path(ref path) => path,
+                    _ => panic!("all fields should e of path type"),
+                }
+                .path
+                .segments;
+
+                if segments.len() != 1 {
+                    panic!("nested members should be direct struct types");
+                }
+
+                let ty_ident = &segments
+                    .first()
+                    .expect("invalid type for nested member")
+                    .ident;
+
+                let ty_optional_ident = si::new(&format!("{}Option", ty_ident), pm2s::call_site());
 
                 quote::quote! { Option<#ty_optional_ident> }
             } else {
@@ -152,7 +167,7 @@ pub fn toml_from_str_default(item: pm::TokenStream) -> pm::TokenStream {
 
     let struct_option_ident = si::new(&format!("{}Option", struct_ident), pm2s::call_site());
 
-    let struct_option_init = quote::quote! {
+    let struct_option_def = quote::quote! {
         struct #struct_option_ident {
             #(#fields_option,)*
         }
@@ -161,14 +176,14 @@ pub fn toml_from_str_default(item: pm::TokenStream) -> pm::TokenStream {
     let fields_unwrap = fields_info.iter().map(|(field_ident, _, field_nested)| {
         let value = if *field_nested {
             quote::quote! {
-                match self.#field_ident {
-                    Some(#field_ident) => #field_ident.toml_unwrap_default(&default.#field_ident),
-                    None => default.#field_ident.clone(),
+                #field_ident: match self.#field_ident {
+                    Some(#field_ident) => #field_ident.toml_unwrap_default(default.#field_ident),
+                    None => default.#field_ident,
                 }
             }
         } else {
             quote::quote! {
-                self.#field_ident.unwrap_or(default.#field_ident.clone())
+                #field_ident: self.#field_ident.unwrap_or(default.#field_ident)
             }
         };
 
@@ -177,7 +192,18 @@ pub fn toml_from_str_default(item: pm::TokenStream) -> pm::TokenStream {
         }
     });
 
+    let struct_option_impl = quote::quote! {
+        impl #struct_option_ident {
+            fn toml_unwrap_default(self, default: #struct_ident) -> #struct_ident {
+                #struct_ident {
+                    #(#fields_unwrap,)*
+                }
+            }
+        }
+    };
+
     pm::TokenStream::from(quote::quote! {
-        #struct_option_init
+        #struct_option_def
+        #struct_option_impl
     })
 }

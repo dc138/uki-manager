@@ -17,8 +17,10 @@ fn main() -> Result<(), anyhow::Error> {
         proc::exit(0);
     }
 
-    let config = config::Config::parse_with_default(opts.config)?;
-    dbg!(config);
+    //let config = config::Config::parse_with_default(opts.config)?;
+    //dbg!(config);
+
+    config::test::test();
 
     //let mut uki =
     //uki::UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;

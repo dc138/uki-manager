@@ -29,56 +29,57 @@ pub struct KernelConfig {
     pub splash_path: String,
 }
 
-mod test {
-    #[derive(uki_manager_proc::TomlFromStrDefault)]
+pub mod test {
+    #[derive(uki_manager_proc::TomlFromStrDefault, Clone, Copy, Debug)]
     struct A {
         #[nest]
         b: B,
         d: u8,
     }
 
-    #[derive(uki_manager_proc::TomlFromStrDefault)]
+    #[derive(uki_manager_proc::TomlFromStrDefault, Clone, Copy, Debug)]
     struct B {
         c: u8,
     }
-}
 
-#[derive(Clone)]
-struct A {
-    b: B,
-    d: u8,
-}
+    pub fn test() {
+        let def = A {
+            b: B { c: 1 },
+            d: 2,
+        };
 
-struct AOption {
-    b: Option<BOption>,
-    d: Option<u8>,
-}
+        let parsed0 = AOption {
+            b: Some(BOption { c: Some(3) }),
+            d: Some(4),
+        };
 
-impl AOption {
-    fn toml_unwrap_default(self, default: &A) -> A {
-        A {
-            b: match self.b {
-                Some(b) => b.toml_unwrap_default(&default.b),
-                None => default.b.clone(),
-            },
-            d: self.d.unwrap_or(default.d.clone()),
-        }
-    }
-}
+        let parsed1 = AOption {
+            b: Some(BOption { c: None }),
+            d: Some(4),
+        };
 
-#[derive(Clone)]
-struct B {
-    c: u8,
-}
+        let parsed2 = AOption {
+            b: None,
+            d: Some(4),
+        };
 
-struct BOption {
-    c: Option<u8>,
-}
+        let parsed3 = AOption {
+            b: Some(BOption { c: Some(3) }),
+            d: None,
+        };
 
-impl BOption {
-    fn toml_unwrap_default(self, default: &B) -> B {
-        B {
-            c: self.c.unwrap_or(default.c.clone()),
-        }
+        let parsed4 = AOption {
+            b: Some(BOption { c: None }),
+            d: None,
+        };
+
+        let parsed5 = AOption { b: None, d: None };
+
+        dbg!(parsed0.toml_unwrap_default(def));
+        dbg!(parsed1.toml_unwrap_default(def));
+        dbg!(parsed2.toml_unwrap_default(def));
+        dbg!(parsed3.toml_unwrap_default(def));
+        dbg!(parsed4.toml_unwrap_default(def));
+        dbg!(parsed5.toml_unwrap_default(def));
     }
 }
