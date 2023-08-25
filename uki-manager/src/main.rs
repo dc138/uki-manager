@@ -1,7 +1,7 @@
 use std::fs;
 use std::process as proc;
 
-mod config;
+mod cfg;
 mod opts;
 mod uki;
 
@@ -19,7 +19,7 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     let config_str = fs::read_to_string(opts.config)?;
-    let config = config::Config::from_str_default(config_str.as_str(), config::Config::default())?;
+    let config = cfg::Config::from_str_default(config_str.as_str(), cfg::Config::default())?;
     dbg!(config);
 
     //let mut uki =
