@@ -1,3 +1,4 @@
+use std::fs;
 use std::process as proc;
 
 mod config;
@@ -17,10 +18,9 @@ fn main() -> Result<(), anyhow::Error> {
         proc::exit(0);
     }
 
-    //let config = config::Config::parse_with_default(opts.config)?;
-    //dbg!(config);
-
-    config::test::test();
+    let config_str = fs::read_to_string(opts.config)?;
+    let config = config::Config::from_str_default(config_str.as_str(), config::Config::default())?;
+    dbg!(config);
 
     //let mut uki =
     //uki::UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;

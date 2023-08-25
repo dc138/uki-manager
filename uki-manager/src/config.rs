@@ -1,24 +1,17 @@
 use uki_manager_proc as ump;
 
-#[derive(ump::TomlParseWithDefault, Debug)]
-pub struct Config {
-    #[default("/boot/".to_owned())]
-    pub vm_dir: String,
+// The macro TomlFromStrDefault provides a from_str_default, that functions similar to
+// toml::from_str, but replaces empty fields with the corresponding field from a provided default
+// value
 
-    #[default(
-        KernelConfig {
-            output_dir: "/efi/EFI/Linux/".to_owned(),
-            output_name: "%name%.efi".to_owned(),
-            stub_path: "/usr/lib/systemd/boot/efi/linuxx64.efi.stub".to_owned(),
-            cmdline_path: "/etc/kernel/cmdline".to_owned(),
-            initrd_paths: vec!["/boot/amd-ucode.img".to_owned(), "/boot/intel-ucode.img".to_owned(), "/boot/initramfs-%name%.img".to_owned()],
-            vmlinuz_path: "/boot/vmlinuz-%name%".to_owned(),
-            splash_path: "/usr/share/systemd/bootctl/splash-arch.bmp".to_owned(),
-        })]
+#[derive(ump::TomlFromStrDefault, Debug)]
+pub struct Config {
+    pub vm_dir: String,
+    #[nest]
     pub default_kernel_config: KernelConfig,
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(ump::TomlFromStrDefault, Debug)]
 pub struct KernelConfig {
     pub output_dir: String,
     pub output_name: String,
@@ -29,57 +22,29 @@ pub struct KernelConfig {
     pub splash_path: String,
 }
 
-pub mod test {
-    #[derive(uki_manager_proc::TomlFromStrDefault, Clone, Copy, Debug)]
-    struct A {
-        #[nest]
-        b: B,
-        d: u8,
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            vm_dir: "/boot/".into(),
+            default_kernel_config: Default::default(),
+        }
     }
+}
 
-    #[derive(uki_manager_proc::TomlFromStrDefault, Clone, Copy, Debug)]
-    struct B {
-        c: u8,
-    }
-
-    pub fn test() {
-        let def = A {
-            b: B { c: 1 },
-            d: 2,
-        };
-
-        let parsed0 = AOption {
-            b: Some(BOption { c: Some(3) }),
-            d: Some(4),
-        };
-
-        let parsed1 = AOption {
-            b: Some(BOption { c: None }),
-            d: Some(4),
-        };
-
-        let parsed2 = AOption {
-            b: None,
-            d: Some(4),
-        };
-
-        let parsed3 = AOption {
-            b: Some(BOption { c: Some(3) }),
-            d: None,
-        };
-
-        let parsed4 = AOption {
-            b: Some(BOption { c: None }),
-            d: None,
-        };
-
-        let parsed5 = AOption { b: None, d: None };
-
-        dbg!(parsed0.toml_unwrap_default(def));
-        dbg!(parsed1.toml_unwrap_default(def));
-        dbg!(parsed2.toml_unwrap_default(def));
-        dbg!(parsed3.toml_unwrap_default(def));
-        dbg!(parsed4.toml_unwrap_default(def));
-        dbg!(parsed5.toml_unwrap_default(def));
+impl Default for KernelConfig {
+    fn default() -> Self {
+        Self {
+            output_dir: "/efi/EFI/Linux/".into(),
+            output_name: "%name%".into(),
+            stub_path: "/usr/lib/systemd/boot/efi/linuxx64.efi.stub".into(),
+            cmdline_path: "/etc/kernel/cmdline".into(),
+            initrd_paths: vec![
+                "/boot/amd-ucode.img".into(),
+                "/boot/intel-ucode.img".into(),
+                "/boot/initramfs-%name%.img".into(),
+            ],
+            vmlinuz_path: "/boot/vmlinuz-%name%".into(),
+            splash_path: "/usr/share/systemd/bootctl/splash-arch.bmp".into(),
+        }
     }
 }
