@@ -4,7 +4,7 @@ pub struct Opts {
     pub help: bool,
     pub version: bool,
     pub gen_all: bool,
-    pub default_config: String,
+    pub config: String,
     pub usage: String,
 }
 
@@ -22,7 +22,7 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
         "try to generate a uki for all installed kernels",
     );
 
-    opts.optopt("c", "config", "path to the default kernel config", "FILE");
+    opts.optopt("c", "config", "path to the config file", "FILE");
 
     let matches = opts.parse(&args[1..])?;
 
@@ -30,9 +30,9 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
         help: matches.opt_present("h"),
         version: matches.opt_present("v"),
         gen_all: matches.opt_present("G"),
-        default_config: matches
+        config: matches
             .opt_str("c")
-            .unwrap_or("/etc/uki-manager/default.toml".to_owned()),
+            .unwrap_or("/etc/uki-manager/config.toml".to_owned()),
         usage: opts.usage("Usage: uki-manager [options]"),
     })
 }

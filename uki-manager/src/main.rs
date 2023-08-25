@@ -1,7 +1,5 @@
 use std::process as proc;
 
-use config::KernelConfig;
-
 mod config;
 mod opts;
 mod uki;
@@ -19,8 +17,8 @@ fn main() -> Result<(), anyhow::Error> {
         proc::exit(0);
     }
 
-    let default_config = KernelConfig::parse_with_default(opts.default_config)?;
-    dbg!(default_config);
+    let config = config::Config::parse_with_default(opts.config)?;
+    dbg!(config);
 
     //let mut uki =
     //uki::UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;
