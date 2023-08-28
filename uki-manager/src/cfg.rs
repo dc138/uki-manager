@@ -1,3 +1,4 @@
+use crate::traits;
 use uki_manager_proc as ump;
 
 // The macro TomlFromStrDefault provides a from_str_default, that functions similar to
@@ -11,7 +12,8 @@ pub struct Config {
     pub default_kernel_config: KernelConfig,
 }
 
-#[derive(ump::TomlFromStrDefault, Debug)]
+#[derive(ump::TomlFromStrDefault, ump::ParseTemplate, Debug)]
+#[template(KernelConfigTemplate)]
 pub struct KernelConfig {
     pub output_dir: String,
     pub output_name: String,
@@ -20,6 +22,22 @@ pub struct KernelConfig {
     pub initrd_paths: Vec<String>,
     pub vmlinuz_path: String,
     pub splash_path: String,
+}
+
+struct KernelConfigTemplate {
+    pub kernel_name: String,
+}
+
+impl traits::ParseTemplate<KernelConfigTemplate> for String {
+    fn parse_template(&self, template: &KernelConfigTemplate) -> Self {
+        self.replace("%name%", &template.kernel_name)
+    }
+}
+
+impl traits::ParseTemplate<KernelConfigTemplate> for Vec<String> {
+    fn parse_template(&self, template: &KernelConfigTemplate) -> Self {
+        self.iter().map(|s| s.parse_template(template)).collect()
+    }
 }
 
 impl Default for Config {
