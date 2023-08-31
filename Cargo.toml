@@ -4,3 +4,5 @@ members = [
   "uki-manager",
   "uki-manager-proc",
 ]
+
+resolver = "2"
