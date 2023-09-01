@@ -28,7 +28,7 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
     opts.optopt(
         "C",
         "config-dir",
-        "path to the custom kernel config directory",
+        "path to the kernel config directory",
         "DIR",
     );
 
@@ -40,7 +40,7 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
         gen_all: matches.opt_present("G"),
         config_file: matches
             .opt_str("c")
-            .unwrap_or("/etc/uki-manager/".to_owned()),
+            .unwrap_or("/etc/uki-manager/config.toml".to_owned()),
         config_dir: matches
             .opt_str("C")
             .unwrap_or("/etc/uki-manager.d/".to_owned()),

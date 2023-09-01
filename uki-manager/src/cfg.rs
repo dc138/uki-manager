@@ -12,7 +12,7 @@ pub struct Config {
     pub default_kernel_config: KernelConfig,
 }
 
-#[derive(ump::TomlFromStrDefault, ump::ParseTemplate, Debug)]
+#[derive(ump::TomlFromStrDefault, ump::ParseTemplate, Clone, Debug)]
 #[template(KernelConfigTemplate)]
 pub struct KernelConfig {
     pub output_dir: String,
@@ -24,7 +24,7 @@ pub struct KernelConfig {
     pub splash_path: String,
 }
 
-struct KernelConfigTemplate {
+pub struct KernelConfigTemplate {
     pub kernel_name: String,
 }
 
