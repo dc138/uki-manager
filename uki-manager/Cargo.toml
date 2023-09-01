@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+colored = "2.0.4"
 exe = "0.5.6"
 getopts = "0.2.21"
 serde = { version = "1.0.185", features = ["derive"] }
