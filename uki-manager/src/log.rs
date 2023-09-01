@@ -16,5 +16,15 @@ macro_rules! println_error {
     };
 }
 
+macro_rules! println_info {
+    ($fmt:expr) => {
+        println!("{} {}", "info:".blue().bold(), $fmt)
+    };
+    ($fmt:expr, $($args:expr)*) => {
+        println!(concat!("{} ", $fmt), "info:".blue().bold(), $($args),*)
+    };
+}
+
 pub(crate) use println_error;
+pub(crate) use println_info;
 pub(crate) use println_warn;
