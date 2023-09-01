@@ -2,8 +2,10 @@ use std::fs;
 use std::process as proc;
 
 use anyhow::Context;
+use colored::Colorize;
 
 mod cfg;
+mod log;
 mod opts;
 mod traits;
 mod uki;
@@ -32,9 +34,18 @@ fn main() -> Result<(), anyhow::Error> {
         proc::exit(0);
     }
 
-    let config_str = fs::read_to_string(opts.config).context("cannot open config file")?;
-    let config = cfg::Config::from_str_default(config_str.as_str(), cfg::Config::default())
-        .context("cannot parse input config file")?;
+    let config = {
+        match fs::read_to_string(opts.config_file) {
+            Ok(config_str) => {
+                cfg::Config::from_str_default(config_str.as_str(), cfg::Config::default())
+                    .context("cannot parse input config file")?
+            }
+            Err(err) => {
+                log::println_warn!("cannot open config file: {}, using default values", err);
+                cfg::Config::default()
+            }
+        }
+    };
 
     for entry in fs::read_dir(config.vm_dir).context("cannot read vm_dir")? {
         let entry = unwrap_or_continue!(entry.ok());

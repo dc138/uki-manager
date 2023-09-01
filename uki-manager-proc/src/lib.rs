@@ -139,13 +139,13 @@ pub fn parse_template(item: pm::TokenStream) -> pm::TokenStream {
         .into_iter()
         .find_map(|attr| {
             let syn::Meta::List(syn::MetaList {
-            path: syn::Path {
-                segments,
+                path: syn::Path { segments, .. },
+                tokens,
                 ..
-            }, tokens, ..
-        }) = attr.meta else {
-            return None;
-        };
+            }) = attr.meta
+            else {
+                return None;
+            };
 
             if segments.first().map(|segment| segment.ident == "template") != Some(true) {
                 return None;
