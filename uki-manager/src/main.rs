@@ -63,7 +63,12 @@ fn main() -> Result<(), anyhow::Error> {
 
     for entry in fs::read_dir(config.vm_dir).context("cannot read vm_dir")? {
         let entry = unwrap_or_continue!(entry.ok());
+
         let entry_name = unwrap_or_continue!(entry.file_name().into_string().ok());
+        let entry_path = entry.path();
+        let entry_path_str = entry_path
+            .to_str()
+            .expect("directory entry should have a valid UTF-8 path");
 
         let (_, kernel_name) = unwrap_or_continue!(entry_name.split_once("vmlinuz-"));
         let kernel_name = kernel_name.to_string();
@@ -91,25 +96,91 @@ fn main() -> Result<(), anyhow::Error> {
             }
         };
 
-        let kernel_config =
+        let mut kernel_config =
             kernel_config.parse_template(&cfg::KernelConfigTemplate { kernel_name });
 
-        dbg!(kernel_config);
-    }
+        let kernel_output_path = path::Path::new(&kernel_config.output_dir)
+            .join(path::Path::new(&kernel_config.output_name));
 
-    //let mut uki =
-    //uki::UnifiedKernelImage::new("/usr/lib/systemd/boot/efi/linuxx64.efi.stub", "output.efi")?;
-    //
-    //uki.add_section_path(".osrel", "/usr/lib/os-release")?;
-    //uki.add_section_buf(".uname", "6.4.8-zen1-1-zen")?;
-    //uki.add_section_path(".cmdline", "/etc/kernel/cmdline")?;
-    //uki.add_section_paths(
-    //".initrd",
-    //vec!["/boot/intel-ucode.img", "/boot/initramfs-linux-zen.img"],
-    //)?;
-    //uki.add_section_path(".linux", "/boot/vmlinuz-linux-zen")?;
-    //
-    //uki.output()?;
+        let kernel_output = kernel_output_path.to_str().unwrap();
+
+        let mut uki = match uki::UnifiedKernelImage::new(&kernel_config.stub_path, &kernel_output) {
+            Ok(uki) => uki,
+            Err(e) => {
+                log::println_warn!("cannot create uki instance: {}, skipping it...", e);
+                continue;
+            }
+        };
+
+        // TODO: configurable osrel
+        match uki.add_section_buf(".osrel", "/usr/lib/os-release") {
+            Ok(()) => log::println_info!("added {} to .osrel", "/usr/lib/os-release"),
+            Err(e) => {
+                log::println_warn!(
+                    "cannot add .osrel section to executable: {}, skipping it...",
+                    e
+                );
+            }
+        };
+
+        // TODO: detect this
+        match uki.add_section_buf(".uname", "6.4.8-zen1-1-zen") {
+            Ok(()) => log::println_info!("added {} to .uname", "6.4.8-zen1-1-zen"),
+            Err(e) => log::println_warn!(
+                "cannot add .uname section to executable: {}, skipping it...",
+                e
+            ),
+        };
+
+        match uki.add_section_path(".cmdline", &kernel_config.cmdline_path) {
+            Ok(()) => log::println_info!("added {} to .cmdline", kernel_config.cmdline_path),
+            Err(e) => log::println_warn!(
+                "cannot add .cmdline section to executable: {}, skipping it...",
+                e
+            ),
+        };
+
+        kernel_config
+            .initrd_paths
+            .retain(|initrd| match path::Path::new(initrd).is_file() {
+                true => {
+                    log::println_info!("found {}", initrd);
+                    true
+                }
+                false => {
+                    log::println_warn!(
+                        "initrd file {} is not present or it cannot be read, ignoring it...",
+                        initrd
+                    );
+                    false
+                }
+            });
+
+        match uki.add_section_paths(".initrd", kernel_config.initrd_paths) {
+            Ok(()) => log::println_info!("added initrds to .initrd"),
+            Err(e) => log::println_warn!(
+                "cannot add .initrd section to executable: {}, skipping it...",
+                e
+            ),
+        };
+
+        match uki.add_section_path(".linux", &entry_path) {
+            Ok(()) => log::println_info!("added {} to .linux", entry_path_str),
+            Err(e) => log::println_warn!(
+                "cannot add .initrd section to executable: {}, skipping it...",
+                e
+            ),
+        };
+
+        match uki.output() {
+            Ok(()) => log::println_info!("wrote {}", kernel_output),
+            Err(e) => log::println_error!(
+                "cannot output efi executable ({}): {}, skipping it...",
+                kernel_output,
+                e
+            ),
+        };
+    }
 
     Ok(())
 }

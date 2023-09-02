@@ -1,9 +1,9 @@
 macro_rules! println_warn {
     ($fmt:expr) => {
-        println!("{} {}", "warning:".yellow().bold(), $fmt)
+        println!("{} {}", "warn:".yellow().bold(), $fmt)
     };
-    ($fmt:expr, $($args:expr)*) => {
-        println!(concat!("{} ", $fmt), "warning:".yellow().bold(), $($args),*)
+    ($fmt:expr, $($args:tt)*) => {
+        println!(concat!("{} ", $fmt), "warn:".yellow().bold(), $($args)*)
     };
 }
 
@@ -11,8 +11,8 @@ macro_rules! println_error {
     ($fmt:expr) => {
         println!("{} {}", "error:".red().bold(), $fmt)
     };
-    ($fmt:expr, $($args:expr)*) => {
-        println!(concat!("{} ", $fmt), "error:".red().bold(), $($args),*)
+    ($fmt:expr, $($args:tt)*) => {
+        println!(concat!("{} ", $fmt), "error:".red().bold(), $($args)*)
     };
 }
 
@@ -20,8 +20,8 @@ macro_rules! println_info {
     ($fmt:expr) => {
         println!("{} {}", "info:".blue().bold(), $fmt)
     };
-    ($fmt:expr, $($args:expr)*) => {
-        println!(concat!("{} ", $fmt), "info:".blue().bold(), $($args),*)
+    ($fmt:expr, $($args:tt)*) => {
+        println!(concat!("{} ", $fmt), "info:".blue().bold(), $($args)*)
     };
 }
 
