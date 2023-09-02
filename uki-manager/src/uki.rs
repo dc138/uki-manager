@@ -4,6 +4,7 @@ use std::fs;
 use std::io;
 use std::io::Read;
 use std::io::Write;
+use std::path;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -70,7 +71,11 @@ impl UnifiedKernelImage {
         Ok(())
     }
 
-    pub fn add_section_path(&mut self, name: &str, path: &str) -> Result<(), Error> {
+    pub fn add_section_path<T: AsRef<path::Path>>(
+        &mut self,
+        name: &str,
+        path: T,
+    ) -> Result<(), Error> {
         let mut file = fs::File::open(path)?;
         let mut buf: Vec<u8> = Vec::new();
 
@@ -79,7 +84,11 @@ impl UnifiedKernelImage {
         Ok(self.add_section_buf(name, buf)?)
     }
 
-    pub fn add_section_paths(&mut self, name: &str, paths: Vec<&str>) -> Result<(), Error> {
+    pub fn add_section_paths<T: AsRef<path::Path>>(
+        &mut self,
+        name: &str,
+        paths: Vec<T>,
+    ) -> Result<(), Error> {
         let mut buf: Vec<u8> = Vec::new();
 
         let files: Vec<fs::File> = paths
