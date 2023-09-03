@@ -1,4 +1,3 @@
-use crate::traits;
 use uki_manager_proc as ump;
 
 // The macro TomlFromStrDefault provides a from_str_default, that functions similar to
@@ -12,8 +11,15 @@ pub struct Config {
     pub default_kernel_config: KernelConfig,
 }
 
-#[derive(ump::TomlFromStrDefault, ump::ParseTemplate, Clone, Debug)]
-#[template(KernelConfigTemplate)]
+pub trait ParseTemplate<T> {
+    fn parse_template(&mut self, template: &T);
+}
+
+pub struct KernelConfigTemplate {
+    pub kernel_name: String,
+}
+
+#[derive(ump::TomlFromStrDefault, Clone, Debug)]
 pub struct KernelConfig {
     pub output_dir: String,
     pub output_name: String,
@@ -24,19 +30,27 @@ pub struct KernelConfig {
     pub splash_path: String,
 }
 
-pub struct KernelConfigTemplate {
-    pub kernel_name: String,
-}
-
-impl traits::ParseTemplate<KernelConfigTemplate> for String {
-    fn parse_template(&self, template: &KernelConfigTemplate) -> Self {
-        self.replace("%name%", &template.kernel_name)
+impl ParseTemplate<KernelConfigTemplate> for KernelConfig {
+    fn parse_template(&mut self, template: &KernelConfigTemplate) {
+        self.output_dir.parse_template(template);
+        self.output_name.parse_template(template);
+        self.stub_path.parse_template(template);
+        self.cmdline_path.parse_template(template);
+        self.initrd_paths.parse_template(template);
+        self.vmlinuz_path.parse_template(template);
+        self.splash_path.parse_template(template);
     }
 }
 
-impl traits::ParseTemplate<KernelConfigTemplate> for Vec<String> {
-    fn parse_template(&self, template: &KernelConfigTemplate) -> Self {
-        self.iter().map(|s| s.parse_template(template)).collect()
+impl ParseTemplate<KernelConfigTemplate> for String {
+    fn parse_template(&mut self, template: &KernelConfigTemplate) {
+        *self = self.replace("%name%", &template.kernel_name);
+    }
+}
+
+impl ParseTemplate<KernelConfigTemplate> for Vec<String> {
+    fn parse_template(&mut self, template: &KernelConfigTemplate) {
+        self.iter_mut().for_each(|s| s.parse_template(template));
     }
 }
 

@@ -5,12 +5,11 @@ use std::process as proc;
 use anyhow::Context;
 use colored::Colorize;
 
-use crate::traits::ParseTemplate;
+use crate::cfg::ParseTemplate;
 
 mod cfg;
 mod log;
 mod opts;
-mod traits;
 mod uki;
 
 static VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -77,7 +76,7 @@ fn main() -> Result<(), anyhow::Error> {
 
         let kernel_config_path = config_dir_path.join(&format!("{}.toml", kernel_name));
 
-        let kernel_config = {
+        let mut kernel_config = {
             if let Ok(kernel_config_str) = fs::read_to_string(&kernel_config_path) {
                 let parsed = cfg::KernelConfig::from_str_default(
                     &kernel_config_str,
@@ -96,8 +95,7 @@ fn main() -> Result<(), anyhow::Error> {
             }
         };
 
-        let mut kernel_config =
-            kernel_config.parse_template(&cfg::KernelConfigTemplate { kernel_name });
+        kernel_config.parse_template(&cfg::KernelConfigTemplate { kernel_name });
 
         let kernel_output_path = path::Path::new(&kernel_config.output_dir)
             .join(path::Path::new(&kernel_config.output_name));
