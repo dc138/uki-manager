@@ -5,7 +5,13 @@ use std::process as proc;
 use anyhow::Context;
 use colored::Colorize;
 
-use crate::cfg::ParseTemplate;
+use crate::log::println_info;
+use crate::log::println_warn;
+use log::println_error;
+use log::println_note;
+
+use crate::cfg::KernelConfig;
+use crate::cfg::KernelConfigOpt;
 
 mod cfg;
 mod log;
@@ -36,8 +42,16 @@ fn main() -> Result<(), anyhow::Error> {
         proc::exit(0);
     }
 
+    let config_path = path::Path::new(&opts.config);
     let config_dir_path = path::Path::new(&opts.config_dir);
-    let config_path = path::Path::new(&opts.config_file);
+
+    if !config_path.is_file() {
+        log::println_error!(
+            "config ({}) must point to an existing, readable file",
+            opts.config
+        );
+        proc::exit(1);
+    }
 
     if !config_dir_path.is_dir() {
         log::println_error!(
@@ -47,20 +61,68 @@ fn main() -> Result<(), anyhow::Error> {
         proc::exit(1);
     }
 
-    if !config_path.is_file() {
-        log::println_error!(
-            "config file ({}) must point to an existing, readable file",
-            opts.config_file
-        );
-        proc::exit(1);
-    }
-
     let config_str = fs::read_to_string(config_path).context("cannot read config file")?;
+    let config_opt: cfg::ConfigOpt =
+        toml::from_str(&config_str).context("cannot parse config file")?;
 
-    let config = cfg::Config::from_str_default(&config_str, cfg::Config::default())
-        .context("cannot parse config file")?;
+    let config = {
+        let boot_dir = config_opt.boot_dir.unwrap_or_else(|| {
+            let opts = vec!["/boot/"];
 
-    for entry in fs::read_dir(config.vm_dir).context("cannot read vm_dir")? {
+            for opt in &opts {
+                if path::Path::new(&opt).is_dir() {
+                    println_info!("using {} as boot directory", opt);
+                    return opt.to_string();
+                }
+            }
+
+            println_error!("cannot find the boot directory, and none was provided, aborting...");
+            println_note!("tried the following directories: {:?}", &opts);
+            proc::exit(1);
+        });
+
+        let esp_dir = config_opt.esp_dir.unwrap_or_else(|| {
+            let opts = vec!["/efi/", "/esp/", "/boot/"];
+
+            for opt in &opts {
+                if path::Path::new(&opt).is_dir() {
+                    println_info!("using {} as EFI system partition", opt);
+                    return opt.to_string();
+                }
+            }
+
+            println_error!(
+                "cannot find the EFI system partition, and none was provided, aborting..."
+            );
+            println_note!("tried the following directories: {:?}", &opts);
+            proc::exit(1);
+        });
+
+        let output_dir = config_opt.output_dir.unwrap_or_else(|| {
+            let opts = vec!["EFI/Linux"];
+
+            for opt in &opts {
+                if path::Path::new(&opt).is_dir() {
+                    println_info!("using {} as output directory", opt);
+                    return opt.to_string();
+                }
+            }
+
+            println_error!(
+                "cannot find a suitable output directory, and none was provided, aborting..."
+            );
+            println_note!("tried the following directories: {:?}", &opts);
+            proc::exit(1);
+        });
+
+        cfg::Config {
+            boot_dir,
+            esp_dir,
+            output_dir,
+        }
+    };
+
+    for entry in fs::read_dir(&config.boot_dir).context("cannot read boot directory")? {
         let entry = unwrap_or_continue!(entry.ok());
 
         let entry_name = unwrap_or_continue!(entry.file_name().into_string().ok());
@@ -75,50 +137,123 @@ fn main() -> Result<(), anyhow::Error> {
         log::println_info!("found installed kernel: {}", kernel_name);
 
         let kernel_config_path = config_dir_path.join(&format!("{}.toml", kernel_name));
+        let kernel_config_str = fs::read_to_string(&kernel_config_path).unwrap_or_default();
 
-        let mut kernel_config = {
-            if let Ok(kernel_config_str) = fs::read_to_string(&kernel_config_path) {
-                let parsed = cfg::KernelConfig::from_str_default(
-                    &kernel_config_str,
-                    config.default_kernel_config.clone(),
-                )
-                .unwrap_or(config.default_kernel_config.clone());
+        if kernel_config_path.is_file() {
+            println_info!("using custom kernel config file");
+        }
 
-                log::println_info!(
-                    "found custom config file: {}",
-                    kernel_config_path.to_str().unwrap()
+        let kernel_config_opt: KernelConfigOpt =
+            toml::from_str(&kernel_config_str).unwrap_or_else(|_| {
+                println_warn!(
+                    "cannot parse custom kernel config file {}, ignoring it...",
+                    kernel_config_str
                 );
+                KernelConfigOpt {
+                    output: None,
+                    stub_path: None,
+                    cmdline_path: None,
+                    initrd_paths: None,
+                    vmlinuz_path: None,
+                    splash_path: None,
+                }
+            });
 
-                parsed
-            } else {
-                config.default_kernel_config.clone()
-            }
+        let kernel_config = KernelConfig {
+            output: kernel_config_opt.output.unwrap_or_else(|| {
+                let output_path = path::Path::new(&config.output_dir).join(&kernel_name);
+                let output = output_path.to_string_lossy();
+
+                println_info!("using {} as output name", output);
+                output.to_string()
+            }),
+            stub_path: kernel_config_opt.stub_path.unwrap_or_else(|| {
+                let opts = vec![
+                    "/usr/lib/systemd/boot/efi/linuxx64.efi.stub",
+                    "/usr/lib/systemd/boot/efi/linuxia32.efi.stub",
+                    "/usr/lib/systemd/boot/efi/linuxaa64.efi.stub",
+                ];
+
+                for opt in &opts {
+                    if path::Path::new(opt).is_file() {
+                        println_info!("using {} as EFI stub", opt);
+                        return opt.to_string();
+                    }
+                }
+
+                println_error!("cannot find a suitable EFI stub, aborting...");
+                println_note!("tried the following files: {:?}", &opts);
+                proc::exit(1);
+            }),
+            cmdline_path: kernel_config_opt.cmdline_path.unwrap_or_else(|| {
+                let opts = vec!["/etc/kernel/cmdline"];
+
+                for opt in &opts {
+                    if path::Path::new(opt).is_file() {
+                        println_info!("using {} as cmdline file", opt);
+                        return opt.to_string();
+                    }
+                }
+
+                println_error!("cannot find a suitable kernel cmdline file, aborting...");
+                println_note!("tried the following files: {:?}", &opts);
+                proc::exit(1);
+            }),
+            initrd_paths: kernel_config_opt.initrd_paths.unwrap_or_else(|| {
+                let kernel_initrd_name = "initramfs-".to_owned() + &kernel_name + ".img";
+
+                let boot_dir_path = path::Path::new(&config.boot_dir);
+                let kernel_initrd = boot_dir_path.join(kernel_initrd_name);
+
+                if !kernel_initrd.is_file() {
+                    println_error!("cannot find kernel initrd, aborting...");
+                    println_note!("tried the following: {}", kernel_initrd.to_string_lossy());
+                    proc::exit(1);
+                }
+
+                let kernel_initrd_str = kernel_initrd
+                    .to_str()
+                    .expect("name must be valid UTF-8")
+                    .to_string();
+
+                println_info!("using {} as kernel initrd", kernel_initrd_str);
+
+                let mut initrds = vec![kernel_initrd_str];
+
+                let opts = vec!["intel-ucode.img", "amd-ucode.img"];
+
+                for opt in opts {
+                    let path = boot_dir_path.join(opt);
+                    if path.is_file() {
+                        println_info!("also adding {}", path.to_string_lossy().to_string());
+                        initrds.push(path.to_string_lossy().to_string());
+                    }
+                }
+
+                initrds
+            }),
+            vmlinuz_path: kernel_config_opt.vmlinuz_path.unwrap_or({
+                println_info!("using {} as kernel image", entry_path_str);
+                entry_path_str.to_string()
+            }),
         };
 
-        kernel_config.parse_template(&cfg::KernelConfigTemplate { kernel_name });
-
-        let kernel_output_path = path::Path::new(&kernel_config.output_dir)
-            .join(path::Path::new(&kernel_config.output_name));
-
-        let kernel_output = kernel_output_path.to_str().unwrap();
-
-        let mut uki = match uki::UnifiedKernelImage::new(&kernel_config.stub_path, &kernel_output) {
-            Ok(uki) => uki,
-            Err(e) => {
-                log::println_warn!("cannot create uki instance: {}, skipping it...", e);
-                continue;
-            }
-        };
+        let mut uki =
+            match uki::UnifiedKernelImage::new(&kernel_config.stub_path, &kernel_config.output) {
+                Ok(uki) => uki,
+                Err(e) => {
+                    log::println_warn!("cannot create uki instance: {}, skipping it...", e);
+                    continue;
+                }
+            };
 
         // TODO: configurable osrel
         match uki.add_section_buf(".osrel", "/usr/lib/os-release") {
             Ok(()) => log::println_info!("added {} to .osrel", "/usr/lib/os-release"),
-            Err(e) => {
-                log::println_warn!(
-                    "cannot add .osrel section to executable: {}, skipping it...",
-                    e
-                );
-            }
+            Err(e) => log::println_warn!(
+                "cannot add .osrel section to executable: {}, skipping it...",
+                e
+            ),
         };
 
         // TODO: detect this
@@ -138,22 +273,6 @@ fn main() -> Result<(), anyhow::Error> {
             ),
         };
 
-        kernel_config
-            .initrd_paths
-            .retain(|initrd| match path::Path::new(initrd).is_file() {
-                true => {
-                    log::println_info!("found {}", initrd);
-                    true
-                }
-                false => {
-                    log::println_warn!(
-                        "initrd file {} is not present or it cannot be read, ignoring it...",
-                        initrd
-                    );
-                    false
-                }
-            });
-
         match uki.add_section_paths(".initrd", kernel_config.initrd_paths) {
             Ok(()) => log::println_info!("added initrds to .initrd"),
             Err(e) => log::println_warn!(
@@ -171,10 +290,10 @@ fn main() -> Result<(), anyhow::Error> {
         };
 
         match uki.output() {
-            Ok(()) => log::println_info!("wrote {}", kernel_output),
+            Ok(()) => log::println_info!("wrote {}", kernel_config.output),
             Err(e) => log::println_error!(
                 "cannot output efi executable ({}): {}, skipping it...",
-                kernel_output,
+                kernel_config.output,
                 e
             ),
         };

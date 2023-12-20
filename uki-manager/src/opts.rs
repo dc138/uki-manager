@@ -4,7 +4,7 @@ pub struct Opts {
     pub help: bool,
     pub version: bool,
     pub gen_all: bool,
-    pub config_file: String,
+    pub config: String,
     pub config_dir: String,
     pub usage: String,
 }
@@ -24,13 +24,7 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
     );
 
     opts.optopt("c", "config", "configuration file", "FILE");
-
-    opts.optopt(
-        "C",
-        "config-dir",
-        "path to the kernel config directory",
-        "DIR",
-    );
+    opts.optopt("C", "config-dir", "kernel configuration directory", "DIR");
 
     let matches = opts.parse(&args[1..])?;
 
@@ -38,12 +32,12 @@ pub fn parse_opts() -> Result<Opts, getopts::Fail> {
         help: matches.opt_present("h"),
         version: matches.opt_present("v"),
         gen_all: matches.opt_present("G"),
-        config_file: matches
+        config: matches
             .opt_str("c")
-            .unwrap_or("/etc/uki-manager/config.toml".to_owned()),
+            .unwrap_or("/etc/uki-manager.toml".to_owned()),
         config_dir: matches
             .opt_str("C")
-            .unwrap_or("/etc/uki-manager.d/".to_owned()),
+            .unwrap_or("/etc/uki-manager.d".to_owned()),
         usage: opts.usage("Usage: uki-manager [options]"),
     })
 }

@@ -67,7 +67,6 @@ impl UnifiedKernelImage {
         *existing_size += raw_size;
 
         sec.write(&mut self.executable, data)?;
-
         Ok(())
     }
 
@@ -80,8 +79,7 @@ impl UnifiedKernelImage {
         let mut buf: Vec<u8> = Vec::new();
 
         file.read_to_end(&mut buf)?;
-
-        Ok(self.add_section_buf(name, buf)?)
+        self.add_section_buf(name, buf)
     }
 
     pub fn add_section_paths<T: AsRef<path::Path>>(
@@ -101,7 +99,7 @@ impl UnifiedKernelImage {
             .map(|mut f| Ok(f.read_to_end(&mut buf)?))
             .collect::<io::Result<Vec<usize>>>()?;
 
-        Ok(self.add_section_buf(name, buf)?)
+        self.add_section_buf(name, buf)
     }
 
     pub fn output(&mut self) -> Result<(), Error> {
@@ -123,8 +121,7 @@ impl UnifiedKernelImage {
             .create(true)
             .open(&self.output)?;
 
-        output.write(&buf)?;
-
+        output.write_all(&buf)?;
         Ok(())
     }
 }

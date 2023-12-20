@@ -1,82 +1,30 @@
-use uki_manager_proc as ump;
+#[derive(serde::Deserialize)]
+pub struct ConfigOpt {
+    pub boot_dir: Option<String>,
+    pub esp_dir: Option<String>,
+    pub output_dir: Option<String>,
+}
 
-// The macro TomlFromStrDefault provides a from_str_default, that functions similar to
-// toml::from_str, but replaces empty fields with the corresponding field from a provided default
-// value
-
-#[derive(ump::TomlFromStrDefault, Debug)]
 pub struct Config {
-    pub vm_dir: String,
-    #[nest]
-    pub default_kernel_config: KernelConfig,
-}
-
-pub trait ParseTemplate<T> {
-    fn parse_template(&mut self, template: &T);
-}
-
-pub struct KernelConfigTemplate {
-    pub kernel_name: String,
-}
-
-#[derive(ump::TomlFromStrDefault, Clone, Debug)]
-pub struct KernelConfig {
+    pub boot_dir: String,
+    pub esp_dir: String,
     pub output_dir: String,
-    pub output_name: String,
+}
+
+#[derive(serde::Deserialize)]
+pub struct KernelConfigOpt {
+    pub output: Option<String>,
+    pub stub_path: Option<String>,
+    pub cmdline_path: Option<String>,
+    pub initrd_paths: Option<Vec<String>>,
+    pub vmlinuz_path: Option<String>,
+    pub splash_path: Option<String>,
+}
+
+pub struct KernelConfig {
+    pub output: String,
     pub stub_path: String,
     pub cmdline_path: String,
     pub initrd_paths: Vec<String>,
     pub vmlinuz_path: String,
-    pub splash_path: String,
-}
-
-impl ParseTemplate<KernelConfigTemplate> for KernelConfig {
-    fn parse_template(&mut self, template: &KernelConfigTemplate) {
-        self.output_dir.parse_template(template);
-        self.output_name.parse_template(template);
-        self.stub_path.parse_template(template);
-        self.cmdline_path.parse_template(template);
-        self.initrd_paths.parse_template(template);
-        self.vmlinuz_path.parse_template(template);
-        self.splash_path.parse_template(template);
-    }
-}
-
-impl ParseTemplate<KernelConfigTemplate> for String {
-    fn parse_template(&mut self, template: &KernelConfigTemplate) {
-        *self = self.replace("%name%", &template.kernel_name);
-    }
-}
-
-impl ParseTemplate<KernelConfigTemplate> for Vec<String> {
-    fn parse_template(&mut self, template: &KernelConfigTemplate) {
-        self.iter_mut().for_each(|s| s.parse_template(template));
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            vm_dir: "/boot/".into(),
-            default_kernel_config: Default::default(),
-        }
-    }
-}
-
-impl Default for KernelConfig {
-    fn default() -> Self {
-        Self {
-            output_dir: "/efi/EFI/Linux/".into(),
-            output_name: "%name%".into(),
-            stub_path: "/usr/lib/systemd/boot/efi/linuxx64.efi.stub".into(),
-            cmdline_path: "/etc/kernel/cmdline".into(),
-            initrd_paths: vec![
-                "/boot/amd-ucode.img".into(),
-                "/boot/intel-ucode.img".into(),
-                "/boot/initramfs-%name%.img".into(),
-            ],
-            vmlinuz_path: "/boot/vmlinuz-%name%".into(),
-            splash_path: "/usr/share/systemd/bootctl/splash-arch.bmp".into(),
-        }
-    }
 }
