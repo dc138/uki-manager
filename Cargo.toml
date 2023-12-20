@@ -1,8 +1,13 @@
-[workspace]
+[package]
+name = "uki-manager"
+version = "0.1.0"
+edition = "2021"
 
-members = [
-  "uki-manager",
-  "uki-manager-proc",
-]
-
-resolver = "2"
+[dependencies]
+anyhow = "1.0.75"
+colored = "2.0.4"
+exe = "0.5.6"
+getopts = "0.2.21"
+serde = { version = "1.0.185", features = ["derive"] }
+thiserror = "1.0.44"
+toml = "0.7.6"
